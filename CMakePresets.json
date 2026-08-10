@@ -1,0 +1,16 @@
+{
+    "version": 8,
+    "configurePresets": [
+        {
+            "name": "Cats-base",
+            "displayName": "Base Configuration for Cats",
+            "hidden": true,
+            "generator": "MinGW Makefiles",
+            "binaryDir": "${sourceDir}/out/build/Cats",
+            "cacheVariables": {
+                "CMAKE_INSTALL_PREFIX": "${sourceDir}/out/install/Cats",
+                "CMAKE_BUILD_TYPE": "Debug"
+            }
+        }
+    ]
+}
