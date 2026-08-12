@@ -1,5 +1,6 @@
 #include <iostream>
 #include <memory>
+#include <SFML/Graphics.hpp>
 #include "include/Stats.hpp"
 #include "include/FileReader.hpp"
 #include "include/Cat.hpp"
@@ -7,6 +8,8 @@
 std::unique_ptr<FileReader> fr;
 std::vector<std::vector<std::string>> csv_file;
 std::random_device rd;
+unsigned int window_width = 600;
+unsigned int window_height = 600;
 
 void wait_for_input() {
     std::cout << "Press Enter to continue...";
@@ -113,8 +116,40 @@ int main(int, char**){
     csv_file = fr->read_file("data/random_names.csv");
 
     // Test Stats and functions
-    test_stats();
+    // test_stats();
     // test_file_reader();
     // std::cout << "Random Name: " << get_random_name() << std::endl;
     // test_cat();
+    sf::RenderWindow window(sf::VideoMode({window_width, window_height}), "Testing SFML");
+    window.setFramerateLimit(60);
+
+    // Copy of code from Pacman project, remove later, just for testing SFML functionality
+    sf::CircleShape pacImg;
+    pacImg.setRadius(8);
+    pacImg.setOutlineColor(sf::Color::Black);
+    pacImg.setOutlineThickness(2);
+    pacImg.setFillColor(sf::Color::Yellow);
+    float topLeftX = (window_width - (28 * 8)) / 2;
+    float topLeftY = (window_height - 31 * 8) / 2;
+    float posX = topLeftX + (13.5 * 8);
+    float posY = topLeftY + (17 * 8);
+    pacImg.setPosition({posX, posY});
+    
+    while (window.isOpen()) {
+        while (const std::optional event = window.pollEvent()) {
+            // Check if the user clicked the 'X' close button
+            if (event->is<sf::Event::Closed>()) {
+                window.close();
+            }
+            else if (const auto* keyPressed = event->getIf<sf::Event::KeyPressed>()) {
+                if (keyPressed->code == sf::Keyboard::Key::Escape) {
+                    window.close();
+                }
+            }
+        }
+
+        window.clear(sf::Color::Black); // Clear screen with black background
+        window.draw(pacImg);
+        window.display();               // Flip buffers to show the frame
+    }
 }
