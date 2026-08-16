@@ -95,15 +95,15 @@ void test_cat() {
     cat1->print_cat_info();
     wait_for_input();
 
-    std::unique_ptr<Cat> cat2 = std::make_unique<Cat>(5, get_random_name());
+    std::unique_ptr<Cat> cat2 = std::make_unique<Cat>(5, get_random_name(), 50, 50);
     cat2->print_cat_info();
     wait_for_input();
 
-    std::unique_ptr<Cat> cat3 = std::make_unique<Cat>(7, get_random_name());
+    std::unique_ptr<Cat> cat3 = std::make_unique<Cat>(7, get_random_name(), 50, 50);
     cat3->print_cat_info();
     wait_for_input();
 
-    std::unique_ptr<Cat> cat4 = std::make_unique<Cat>(1, 2, 3, 4, 5, 6, 7, 8, 9, 4, get_random_name());
+    std::unique_ptr<Cat> cat4 = std::make_unique<Cat>(1, 2, 3, 4, 5, 6, 7, 8, 9, 4, get_random_name(), 50, 50);
     cat4->print_cat_info();
     wait_for_input();
 
@@ -114,6 +114,9 @@ int main(int, char**){
 
     fr = std::make_unique<FileReader>();
     csv_file = fr->read_file("data/random_names.csv");
+
+    Cat cat1 = Cat();
+    Cat cat2 = Cat(200, 200);
 
     // Test Stats and functions
     // test_stats();
@@ -150,6 +153,8 @@ int main(int, char**){
 
         window.clear(sf::Color::Black); // Clear screen with black background
         window.draw(pacImg);
+        window.draw(cat1);
+        window.draw(cat2);
         window.display();               // Flip buffers to show the frame
     }
 }

@@ -15,7 +15,8 @@ FetchContent_MakeAvailable(SFML)
 add_executable(Cats main.cpp
     src/Cat.cpp
     src/Stats.cpp
-    src/FileReader.cpp)
+    src/FileReader.cpp
+    src/CatSprite.cpp)
 
 target_link_libraries(Cats PRIVATE sfml-graphics sfml-window sfml-system)
 target_include_directories(Cats PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/include")
