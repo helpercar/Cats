@@ -1,5 +1,6 @@
 #include <iostream>
 #include <memory>
+#include <cmath>
 #include <SFML/Graphics.hpp>
 #include "include/Stats.hpp"
 #include "include/FileReader.hpp"
@@ -9,7 +10,9 @@ std::unique_ptr<FileReader> fr;
 std::vector<std::vector<std::string>> csv_file;
 std::random_device rd;
 unsigned int window_width = 600;
+unsigned int min_width = 600;
 unsigned int window_height = 600;
+unsigned int min_height = 600;
 
 void wait_for_input() {
     std::cout << "Press Enter to continue...";
@@ -115,32 +118,21 @@ int main(int, char**){
     fr = std::make_unique<FileReader>();
     csv_file = fr->read_file("data/random_names.csv");
 
-    Cat cat1 = Cat();
+    Cat cat1 = Cat(300, 300);
     Cat cat2 = Cat(200, 200);
 
-    // Test Stats and functions
-    // test_stats();
-    // test_file_reader();
-    // std::cout << "Random Name: " << get_random_name() << std::endl;
-    // test_cat();
     sf::RenderWindow window(sf::VideoMode({window_width, window_height}), "Testing SFML");
+    
+    // Initialize view with an internal 1:1 resolution
+    sf::View view(sf::FloatRect({0.f, 0.f}, {600.f, 600.f}));
     window.setFramerateLimit(60);
+    sf::Clock clock;
 
-    // Copy of code from Pacman project, remove later, just for testing SFML functionality
-    sf::CircleShape pacImg;
-    pacImg.setRadius(8);
-    pacImg.setOutlineColor(sf::Color::Black);
-    pacImg.setOutlineThickness(2);
-    pacImg.setFillColor(sf::Color::Yellow);
-    float topLeftX = (window_width - (28 * 8)) / 2;
-    float topLeftY = (window_height - 31 * 8) / 2;
-    float posX = topLeftX + (13.5 * 8);
-    float posY = topLeftY + (17 * 8);
-    pacImg.setPosition({posX, posY});
+    const unsigned int min_width = 600;
+    const unsigned int min_height = 600; // Keep min size 1:1 for consistency
     
     while (window.isOpen()) {
         while (const std::optional event = window.pollEvent()) {
-            // Check if the user clicked the 'X' close button
             if (event->is<sf::Event::Closed>()) {
                 window.close();
             }
@@ -149,12 +141,70 @@ int main(int, char**){
                     window.close();
                 }
             }
-        }
+            else if (const auto* resize = event->getIf<sf::Event::Resized>()) {
+                unsigned int new_width = resize->size.x;
+                unsigned int new_height = resize->size.y;
+                bool need_resize = false;
 
-        window.clear(sf::Color::Black); // Clear screen with black background
-        window.draw(pacImg);
+                // Enforce absolute minimum window limits
+                if (new_width < min_width) { new_width = min_width; need_resize = true; }
+                if (new_height < min_height) { new_height = min_height; need_resize = true; }
+
+                if (need_resize) {
+                    window.setSize({new_width, new_height});
+                }
+
+                // Calculate Letterbox / Pillarbox viewport coordinates
+                // Target aspect ratio is 1.0 (1:1)
+                float windowRatio = static_cast<float>(new_width) / static_cast<float>(new_height);
+                float viewRatio = 1.0f; 
+                
+                float viewportX = 0.f;
+                float viewportY = 0.f;
+                float viewportWidth = 1.f;
+                float viewportHeight = 1.f;
+
+                if (windowRatio > viewRatio) {
+                    // Window is wider than 1:1 -> Pillarbox (bars on left/right)
+                    viewportWidth = viewRatio / windowRatio;
+                    viewportX = (1.f - viewportWidth) / 2.f;
+                } else {
+                    // Window is taller than 1:1 -> Letterbox (bars on top/bottom)
+                    viewportHeight = windowRatio / viewRatio;
+                    viewportY = (1.f - viewportHeight) / 2.f;
+                }
+
+                // Apply the viewport rectangle (normalized between 0.0 and 1.0)
+                view.setViewport(sf::FloatRect({viewportX, viewportY}, {viewportWidth, viewportHeight}));
+                window.setView(view);
+            }
+        }
+        float time = clock.getElapsedTime().asSeconds();
+
+        // Calculate a slight wiggle angle (oscillates between -15 and +15 degrees)
+        float earWiggle = std::sin(time * 6.f) * 15.f; 
+
+        // Ear Rotation
+        SpritePart& head1 = cat1.sprite.getPart("torso").getChild("head");
+        head1.getChild("leftEar").setRotation(sf::degrees(325.f + earWiggle));
+        head1.getChild("rightEar").setRotation(sf::degrees(45.f - earWiggle));
+
+        // Leg Rotation
+        float hipAngle = std::sin(time * 4.f) * 20.f;
+        float kneeAngle = (std::cos(time * 4.f) * 25.f) + 25.f;
+
+        cat2.sprite.getPart("frontrighttopleg").setRotation(sf::degrees(30.f + hipAngle));
+        cat2.sprite.getPart("frontrighttopleg").getChild("frontrightbottomleg").setRotation(sf::degrees(kneeAngle));
+
+        // Breathing
+        float breatheOffset = std::sin(time * 2.f) * 5.f;
+        cat2.sprite.setPosition({200.f, 200.f + breatheOffset});
+
+        window.clear(sf::Color::Black); // This color fills the background borders
+        
         window.draw(cat1);
         window.draw(cat2);
-        window.display();               // Flip buffers to show the frame
+        
+        window.display();
     }
 }

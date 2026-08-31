@@ -6,22 +6,6 @@
 #include <memory>
 #include <vector>
 
-enum class ShapeType { 
-    Circle, 
-    Rectangle 
-};
-
-struct Options {
-    ShapeType type = ShapeType::Circle; 
-    sf::Color color = sf::Color(250, 0, 0);
-    unsigned int vertexes = 0;
-    float originx = 0.f;
-    float originy = 0.f;
-    float angle = 0.f;
-    float scalex = 1.f;
-    float scaley = 1.f;
-};
-
 class CatSprite : public sf::Drawable, public sf::Transformable {
 public:
     CatSprite();
@@ -31,7 +15,7 @@ public:
     int centerY;
 
     std::unique_ptr<sf::Shape> createShape(sf::Vector2f dimensions, Options opt);
-    void attachPart(const std::string& name, std::unique_ptr<sf::Shape> shape, sf::Vector2f localOffset, float initialAngle = 0.f, int zIndex = 0);
+    void attachPart(const std::string& name, std::unique_ptr<sf::Shape> shape, sf::Vector2f localOffset, float initialAngle = 0.f, int zIndex = 0, Options opt = {});
     SpritePart& getPart(const std::string& name);
 
 private:

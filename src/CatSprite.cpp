@@ -15,33 +15,30 @@ std::unique_ptr<sf::Shape> CatSprite::createShape(sf::Vector2f dimensions, Optio
     if (opt.type == ShapeType::Rectangle) {
         shape = std::make_unique<sf::RectangleShape>(dimensions);
     } else {
-        if (opt.vertexes != 0) {
-            shape = std::make_unique<sf::CircleShape>(dimensions.x, opt.vertexes);
-        } else {
-            shape = std::make_unique<sf::CircleShape>(dimensions.x);
-        }
+        shape = (opt.vertexes != 0) ? std::make_unique<sf::CircleShape>(dimensions.x, opt.vertexes) : std::make_unique<sf::CircleShape>(dimensions.x);
     }
-
+    
     shape->setScale({opt.scalex, opt.scaley});
-
-    if (opt.originx == 0.f && opt.originy == 0.f) {
-        sf::FloatRect bounds = shape->getLocalBounds();
-        shape->setOrigin({bounds.size.x / 2.f, bounds.size.y / 2.f});
-    } else {
-        shape->setOrigin({opt.originx, opt.originy});
-    }
-
     shape->setFillColor(opt.color);
+
     return shape;
 }
 
-void CatSprite::attachPart(const std::string& name, std::unique_ptr<sf::Shape> shape, sf::Vector2f localOffset, float initialAngle, int zIndex) {
-    auto partPtr = std::make_unique<SpritePart>(std::move(shape), zIndex);
+void CatSprite::attachPart(const std::string& name, std::unique_ptr<sf::Shape> shape, sf::Vector2f localOffset, float initialAngle, int zIndex, Options opt) {
+    sf::Vector2f origin{opt.originx, opt.originy};
+    
+    // If no custom origin was provided, automatically calculate the geometric center
+    if (origin.x == 0.f && origin.y == 0.f) {
+        sf::FloatRect bounds = shape->getLocalBounds();
+        origin = {bounds.size.x / 2.f, bounds.size.y / 2.f};
+    }
+
+    auto partPtr = std::make_unique<SpritePart>(std::move(shape), zIndex, origin);
     partPtr->setPosition(localOffset);
     partPtr->setRotation(sf::degrees(initialAngle));
-    
     shapes[name] = std::move(partPtr);
 }
+
 
 void CatSprite::draw(sf::RenderTarget& target, sf::RenderStates states) const {
     // Combine global root world position
@@ -78,25 +75,61 @@ CatSprite::CatSprite(int x, int y) {
     this->centerY = y;
     this->setPosition({static_cast<float>(x), static_cast<float>(y)});
 
-    // Torso, Center Layer
-    auto torso = createShape({60.f, 30.f}, {.type = ShapeType::Rectangle, .color = sf::Color(155, 155, 155)});
-    attachPart("torso", std::move(torso), {0.f, 0.f}, 0.f, 0);
+    // TODO: refactor function to make it cleaner,
+    // I am realizing it is just a bunch of the same functionality over and over
+    // So I should just put this somewhere else and pass the parameters into the function
 
-    // Head, Layer 5
-    auto head = createShape({20.f, 20.f}, {.type = ShapeType::Circle, .color = sf::Color(240, 0, 0)});
-    attachPart("head", std::move(head), {30.f, -30.f}, 0.f, 5);
+    // Torso
+    Options torsoOpt = {.type = ShapeType::Rectangle, .color = sf::Color(155, 155, 155)};
+    auto torsoShape = createShape({60.f, 30.f}, torsoOpt);
+    
+    // Calculate torso center origin
+    auto torsoPart = std::make_unique<SpritePart>(std::move(torsoShape), 0, sf::Vector2f{30.f, 15.f}); 
+    SpritePart* torsoRef = torsoPart.get();
+    shapes["torso"] = std::move(torsoPart);
 
-    // Left Leg Branches, Layers -5, -4
-    auto frontLeftTopLeg = createShape({5.f, 5.f}, {.type = ShapeType::Circle, .color = sf::Color(120, 120, 120), .originx = 2.5f, .originy = 2.5f, .scaley = 2.f});
-    attachPart("frontlefttopleg", std::move(frontLeftTopLeg), {20.f, 15.f}, 0.f, -5);
+    // Head
+    Options headOpt = {.type = ShapeType::Circle, .color = sf::Color(240, 0, 0)};
+    auto headShape = createShape({20.f, 20.f}, headOpt);
+    
+    // Attach head directly to torso reference
+    torsoRef->attachChild("head", std::move(headShape), {60.f, -10.f}, 0.f, 5, headOpt);
+    SpritePart& headRef = torsoRef->getChild("head");
 
-    auto frontLeftBottomLeg = createShape({5.f, 5.f}, {.type = ShapeType::Circle, .color = sf::Color(120, 120, 120), .originx = 2.5f, .originy = 2.5f, .scaley = 2.f});
-    getPart("frontlefttopleg").attachChild("frontleftbottomleg", std::move(frontLeftBottomLeg), {0.f, 15.f}, 0.f, -5);
+    // Left Ear
+    Options leftEarOpt = {.type = ShapeType::Circle, .color = sf::Color(155, 20, 155), .vertexes = 3};
+    auto leftEar = createShape({12.f, 12.f}, leftEarOpt);
+    headRef.attachChild("leftEar", std::move(leftEar), {2.f, 0.f}, 325.f, 6, leftEarOpt);
 
-    // Right Leg Branches, Layers -5, -4
-    auto frontRightTopLeg = createShape({5.f, 5.f}, {.type = ShapeType::Circle, .color = sf::Color(140, 140, 140), .originx = 2.5f, .originy = 2.5f, .scaley = 2.f});
-    attachPart("frontrighttopleg", std::move(frontRightTopLeg), {-20.f, 15.f}, 0.f, 5);
+    // Right Ear
+    Options rightEarOpt = {.type = ShapeType::Circle, .color = sf::Color(155, 20, 155), .vertexes = 3};
+    auto rightEar = createShape({12.f, 12.f}, rightEarOpt);
+    headRef.attachChild("rightEar", std::move(rightEar), {34.f, 0.f}, 45.f, 4, rightEarOpt);
 
-    auto frontRightBottomLeg = createShape({5.f, 5.f}, {.type = ShapeType::Circle, .color = sf::Color(140, 140, 140), .originx = 2.5f, .originy = 2.5f, .scaley = 2.f});
-    getPart("frontrighttopleg").attachChild("frontrightbottomleg", std::move(frontRightBottomLeg), {0.f, 15.f}, 0.f, 5);
+    // Leg Shared Setup
+    Options legOpt = {.type = ShapeType::Circle, .color = sf::Color(100, 100, 100), .originx = 2.5f, .originy = 2.5f, .scaley = 2.f};
+    Options rightLegOpt = {.type = ShapeType::Circle, .color = sf::Color(120, 120, 120), .originx = 2.5f, .originy = 2.5f, .scaley = 2.f};
+
+    // Front Left Leg
+    auto frontLeftTopLeg = createShape({5.f, 5.f}, legOpt);
+    attachPart("frontlefttopleg", std::move(frontLeftTopLeg), {24.f, 15.f}, 0.f, -4, legOpt);
+    getPart("frontlefttopleg").attachChild("frontleftbottomleg", std::move(createShape({5.f, 5.f}, legOpt)), {0.f, 15.f}, 0.f, -5, legOpt);
+
+    // Front Right Leg
+    auto frontRightTopLeg = createShape({5.f, 5.f}, rightLegOpt);
+    attachPart("frontrighttopleg", std::move(frontRightTopLeg), {18.f, 15.f}, 0.f, 4, rightLegOpt);
+    getPart("frontrighttopleg").attachChild("frontrightbottomleg", std::move(createShape({5.f, 5.f}, rightLegOpt)), {0.f, 15.f}, 0.f, 5, rightLegOpt);
+
+    // Back Left Leg
+    auto backLeftTopLeg = createShape({5.f, 5.f}, legOpt);
+    attachPart("backlefttopleg", std::move(backLeftTopLeg), {-18.f, 15.f}, 0.f, -4, legOpt);
+    getPart("backlefttopleg").attachChild("backleftbottomleg", std::move(createShape({5.f, 5.f}, legOpt)), {0.f, 15.f}, 0.f, -5, legOpt);
+
+    // Back Right Leg
+    Options backRightLegOpt = {.type = ShapeType::Circle, .color = sf::Color(140, 140, 140), .originx = 2.5f, .originy = 2.5f, .scaley = 2.f};
+    auto backRightTopLeg = createShape({5.f, 5.f}, backRightLegOpt);
+    attachPart("backrighttopleg", std::move(backRightTopLeg), {-24.f, 15.f}, 0.f, 4, backRightLegOpt);
+    getPart("backrighttopleg").attachChild("backrightbottomleg", std::move(createShape({5.f, 5.f}, backRightLegOpt)), {0.f, 15.f}, 0.f, 5, backRightLegOpt);
 }
+
+

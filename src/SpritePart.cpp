@@ -1,8 +1,8 @@
 #include "../include/SpritePart.hpp"
 
-SpritePart::SpritePart(std::unique_ptr<sf::Shape> shape, int zIndex) : m_shape(std::move(shape)), m_zIndex(zIndex) {
-    sf::FloatRect bounds = m_shape->getLocalBounds();
-    m_shape->setOrigin({bounds.size.x / 2.f, bounds.size.y / 2.f});
+SpritePart::SpritePart(std::unique_ptr<sf::Shape> shape, int zIndex, sf::Vector2f origin) 
+    : m_shape(std::move(shape)), m_zIndex(zIndex) {
+    this->setOrigin(origin); 
 }
 
 sf::Shape& SpritePart::getShape() { 
@@ -13,13 +13,21 @@ int SpritePart::getZIndex() const {
     return m_zIndex; 
 }
 
-void SpritePart::attachChild(const std::string& name, std::unique_ptr<sf::Shape> shape, sf::Vector2f localOffset, float initialAngle, int zIndex) {
-    auto childPtr = std::make_unique<SpritePart>(std::move(shape), zIndex);
+void SpritePart::attachChild(const std::string& name, std::unique_ptr<sf::Shape> shape, sf::Vector2f localOffset, float initialAngle, int zIndex, Options opt) {
+    sf::Vector2f origin{opt.originx, opt.originy};
+    
+    if (origin.x == 0.f && origin.y == 0.f) {
+        sf::FloatRect bounds = shape->getLocalBounds();
+        origin = {bounds.size.x / 2.f, bounds.size.y / 2.f};
+    }
+
+    auto childPtr = std::make_unique<SpritePart>(std::move(shape), zIndex, origin);
     childPtr->setPosition(localOffset);
     childPtr->setRotation(sf::degrees(initialAngle));
     
     m_children[name] = std::move(childPtr);
 }
+
 
 SpritePart& SpritePart::getChild(const std::string& name) {
     auto it = m_children.find(name);
